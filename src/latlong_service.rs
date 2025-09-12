@@ -2,9 +2,9 @@ use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
 
-struct LatLong {
-    lat: f64,
-    long: f64,
+pub(crate) struct LatLong {
+    pub(crate) lat: f64,
+    pub(crate) long: f64,
 }
 
 #[derive(Debug, Deserialize)]

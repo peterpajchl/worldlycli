@@ -3,6 +3,7 @@ mod latlong_service;
 
 use audio_service::fetch_audio_for_text;
 use csv::ReaderBuilder;
+use latlong_service::LatLong;
 use latlong_service::get_lat_long_for_city;
 use reqwest::Client;
 use serde::de;
@@ -33,6 +34,13 @@ struct CountryCapital {
     capital_audio_filename: Option<String>,
 }
 
+impl CountryCapital {
+    fn set_latlong(&mut self, lat_long: LatLong) {
+        self.capital_latitude = Some(lat_long.lat);
+        self.capital_longitude = Some(lat_long.long);
+    }
+}
+
 fn deserialize_member_of_un_to_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
     D: de::Deserializer<'de>,
@@ -57,6 +65,8 @@ where
     }
 }
 
+const output_path: &str = "output/audio";
+
 pub async fn run() -> anyhow::Result<()> {
     // 1. load the csv file and parse it
     let mut csv_reader = ReaderBuilder::new()
@@ -73,6 +83,9 @@ pub async fn run() -> anyhow::Result<()> {
     let mut csv_iter = csv_reader.deserialize::<CountryCapital>().peekable();
     let mut index = 0;
 
+    // prepare output folder
+    tokio::fs::create_dir_all(output_path).await?;
+
     while let Some(entry) = csv_iter.next() {
         let is_last = csv_iter.peek().is_none();
 
@@ -86,11 +99,16 @@ pub async fn run() -> anyhow::Result<()> {
                 )
                 .await?;
 
-                r.capital_latitude = Some(lat_long.lat);
-                r.capital_longitude = Some(lat_long.long);
+                r.set_latlong(lat_long);
 
-                let country_audio_resp = fetch_audio_for_text(http_client.clone(), text).await?;
-                let capital_audio_resp = fetch_audio_for_text(http_client.clone(), text).await?;
+                let country_audio_resp = fetch_audio_for_text(
+                    http_client.clone(),
+                    &r.country_short_form_name,
+                    output_path,
+                )
+                .await?;
+                let capital_audio_resp =
+                    fetch_audio_for_text(http_client.clone(), &r.capital_city, output_path).await?;
 
                 let json_row = serde_json::to_string(&r)?;
                 json_writer.write_all(json_row.as_bytes()).await?;

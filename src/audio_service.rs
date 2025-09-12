@@ -4,7 +4,10 @@ use gcp_auth::{CustomServiceAccount, TokenProvider};
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
-use std::path::PathBuf;
+use std::{
+    hash::{DefaultHasher, Hash, Hasher},
+    path::PathBuf,
+};
 
 #[derive(Debug, Deserialize)]
 struct TextToSpeechResponse {
@@ -27,7 +30,7 @@ struct AudioConfig {
     sample_rate_hertz: u32,
 }
 
-pub(crate) async fn fetch_audio_for_text(client: Client, text: &str) -> Result<()> {
+pub(crate) async fn fetch_audio_for_text(client: Client, text: &str, dir: &str) -> Result<String> {
     let credentials_path = PathBuf::from("worldly-471715-10ed2befe42a.json");
     let service_account = CustomServiceAccount::from_file(credentials_path)?;
     let scopes = &["https://www.googleapis.com/auth/cloud-platform"];
@@ -58,7 +61,14 @@ pub(crate) async fn fetch_audio_for_text(client: Client, text: &str) -> Result<(
 
     dbg!(&response);
 
+    let mut hasher = DefaultHasher::new();
     let output_file = Base64Standard.decode(response.audio_content)?;
+    let file_name = text.hash(&mut hasher);
+    let file_path = dir.to_string().push_str(&format!(
+        "{}.{}",
+        file_name.,
+        response.audio_config.audio_encoding.to_lowercase()
+    ));
     tokio::fs::write("output.mp3", &output_file).await?;
 
     Ok(())
