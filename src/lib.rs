@@ -85,10 +85,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     json_writer.write_all(b"[\n").await?;
 
-    let mut csv_iter = csv_reader
-        .deserialize::<CountryCapital>()
-        //.skip(197)
-        .peekable();
+    let mut csv_iter = csv_reader.deserialize::<CountryCapital>().peekable();
 
     while let Some(entry) = csv_iter.next() {
         let is_last = csv_iter.peek().is_none();
@@ -124,7 +121,7 @@ pub async fn run() -> anyhow::Result<()> {
                 json_writer.write_all(json_row.as_bytes()).await?;
 
                 if !is_last {
-                    json_writer.write_all(b",\n]").await?;
+                    json_writer.write_all(b",\n").await?;
                 }
             }
             Err(e) => eprintln!("Error parsing record: {}", e),
@@ -136,7 +133,7 @@ pub async fn run() -> anyhow::Result<()> {
     // b) generate audio using text-to-speech for each capital city and country name
     //
     // create new json file with all the data
-    json_writer.write_all(b"]\n").await?;
+    json_writer.write_all(b"\n]\n").await?;
     json_writer.flush().await?;
 
     Ok(())

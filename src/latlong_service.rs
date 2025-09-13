@@ -31,13 +31,14 @@ pub(crate) async fn get_lat_long_for_city(
     city: &str,
     country: &str,
 ) -> Result<LatLong> {
+    let query = format!("{}, {}", city, country);
     let response = client
         .get("https://nominatim.openstreetmap.org/search")
         .header("User-Agent", "worldlycli/0.1")
         .query(&[
             //("city", city),
             //("country", country),
-            ("q", format!("{}, {}", city, country).as_str()),
+            ("q", query.as_str()),
             ("format", "json"),
             ("limit", "1"),
         ])
@@ -45,6 +46,13 @@ pub(crate) async fn get_lat_long_for_city(
         .await?
         .json::<Vec<NominatimResponse>>()
         .await?;
+
+    if response.len() == 0 {
+        return Err(anyhow::format_err!(
+            "No results found for query '{}'",
+            query
+        ));
+    }
 
     let lat_long = LatLong {
         lat: response[0].lat.parse::<f64>()?,
