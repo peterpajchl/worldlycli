@@ -9,21 +9,21 @@ pub(crate) struct LatLong {
 
 #[derive(Debug, Deserialize)]
 struct NominatimResponse {
-    place_id: u32,
-    licence: String,
-    osm_type: String,
-    osm_id: u32,
+    //place_id: u32,
+    //licence: String,
+    //osm_type: String,
+    //osm_id: u32,
     lat: String,
     lon: String,
-    class: String,
-    #[serde(rename = "type")]
-    place_type: String,
-    place_rank: u32,
-    importance: f32,
-    addresstype: String,
-    name: String,
-    display_name: String,
-    boundingbox: Vec<String>,
+    //class: String,
+    //#[serde(rename = "type")]
+    //place_type: String,
+    //place_rank: u32,
+    //importance: f32,
+    //addresstype: String,
+    //name: String,
+    //display_name: String,
+    //boundingbox: Vec<String>,
 }
 
 pub(crate) async fn get_lat_long_for_city(
@@ -35,8 +35,9 @@ pub(crate) async fn get_lat_long_for_city(
         .get("https://nominatim.openstreetmap.org/search")
         .header("User-Agent", "worldlycli/0.1")
         .query(&[
-            ("city", city),
-            ("country", country),
+            //("city", city),
+            //("country", country),
+            ("q", format!("{}, {}", city, country).as_str()),
             ("format", "json"),
             ("limit", "1"),
         ])

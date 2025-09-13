@@ -2,3 +2,4 @@
 gcp-credentials.json
 /output
 .DS_Store
+output.json

@@ -39,6 +39,11 @@ impl CountryCapital {
         self.capital_latitude = Some(lat_long.lat);
         self.capital_longitude = Some(lat_long.long);
     }
+
+    fn set_audio_filenames(&mut self, country_audio: String, capital_audio: String) {
+        self.country_audio_filename = Some(country_audio);
+        self.capital_audio_filename = Some(capital_audio);
+    }
 }
 
 fn deserialize_member_of_un_to_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -65,7 +70,7 @@ where
     }
 }
 
-const output_path: &str = "output/audio";
+const OUTPUT_PATH: &str = "output/audio";
 
 pub async fn run() -> anyhow::Result<()> {
     // 1. load the csv file and parse it
@@ -80,18 +85,20 @@ pub async fn run() -> anyhow::Result<()> {
 
     json_writer.write_all(b"[\n").await?;
 
-    let mut csv_iter = csv_reader.deserialize::<CountryCapital>().peekable();
-    let mut index = 0;
-
-    // prepare output folder
-    tokio::fs::create_dir_all(output_path).await?;
+    let mut csv_iter = csv_reader
+        .deserialize::<CountryCapital>()
+        //.skip(197)
+        .peekable();
 
     while let Some(entry) = csv_iter.next() {
         let is_last = csv_iter.peek().is_none();
 
         match entry {
             Ok(mut r) => {
-                println!("Record: {} {}", r.country_short_form_name, r.capital_city);
+                println!(
+                    "Country: '{}' Capital: '{}'",
+                    r.country_short_form_name, r.capital_city
+                );
                 let lat_long = get_lat_long_for_city(
                     http_client.clone(),
                     &r.capital_city,
@@ -101,31 +108,27 @@ pub async fn run() -> anyhow::Result<()> {
 
                 r.set_latlong(lat_long);
 
-                let country_audio_resp = fetch_audio_for_text(
-                    http_client.clone(),
-                    &r.country_short_form_name,
-                    output_path,
-                )
-                .await?;
-                let capital_audio_resp =
-                    fetch_audio_for_text(http_client.clone(), &r.capital_city, output_path).await?;
+                //let country_audio_resp = fetch_audio_for_text(
+                //    http_client.clone(),
+                //    &r.country_short_form_name,
+                //    OUTPUT_PATH,
+                //)
+                //.await?;
+
+                //let capital_audio_resp =
+                //    fetch_audio_for_text(http_client.clone(), &r.capital_city, OUTPUT_PATH).await?;
+
+                //r.set_audio_filenames(country_audio_resp, capital_audio_resp);
 
                 let json_row = serde_json::to_string(&r)?;
                 json_writer.write_all(json_row.as_bytes()).await?;
 
                 if !is_last {
-                    json_writer.write_all(b",\n").await?;
+                    json_writer.write_all(b",\n]").await?;
                 }
             }
             Err(e) => eprintln!("Error parsing record: {}", e),
         };
-
-        // for testing to avoid hammering external services
-        if index > 5 {
-            break;
-        }
-
-        index += 1;
     }
 
     // 2. run through the list and fetch
