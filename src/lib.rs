@@ -105,17 +105,17 @@ pub async fn run() -> anyhow::Result<()> {
 
                 r.set_latlong(lat_long);
 
-                //let country_audio_resp = fetch_audio_for_text(
-                //    http_client.clone(),
-                //    &r.country_short_form_name,
-                //    OUTPUT_PATH,
-                //)
-                //.await?;
+                let country_audio_resp = fetch_audio_for_text(
+                    http_client.clone(),
+                    &r.country_short_form_name,
+                    OUTPUT_PATH,
+                )
+                .await?;
 
-                //let capital_audio_resp =
-                //    fetch_audio_for_text(http_client.clone(), &r.capital_city, OUTPUT_PATH).await?;
+                let capital_audio_resp =
+                    fetch_audio_for_text(http_client.clone(), &r.capital_city, OUTPUT_PATH).await?;
 
-                //r.set_audio_filenames(country_audio_resp, capital_audio_resp);
+                r.set_audio_filenames(country_audio_resp, capital_audio_resp);
 
                 let json_row = serde_json::to_string(&r)?;
                 json_writer.write_all(json_row.as_bytes()).await?;
