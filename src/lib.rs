@@ -12,16 +12,17 @@ use tokio::io::AsyncWriteExt;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct CountryCapital {
+    id: Option<u8>,
     #[serde(alias = "SHORT_FORM_NAME")]
-    country_short_form_name: String,
+    country: String,
     #[serde(alias = "LONG_FORM_NAME")]
-    country_long_form_name: String,
+    country_long: String,
     #[serde(alias = "GENC_2A_CODE")]
-    country_code_2letter: String,
+    country_code: String,
     #[serde(alias = "GENC_3A_CODE")]
-    country_code_3letter: String,
+    country_code_3: String,
     #[serde(alias = "CAPITAL_INDEPENDENT_STATES")]
-    capital_city: String,
+    capital: String,
     #[serde(alias = "STATUS")]
     #[serde(deserialize_with = "deserialize_independent_to_bool")]
     independent: bool,
@@ -86,34 +87,37 @@ pub async fn run() -> anyhow::Result<()> {
     json_writer.write_all(b"[\n").await?;
 
     let mut csv_iter = csv_reader.deserialize::<CountryCapital>().peekable();
+    let mut index = 1;
 
     while let Some(entry) = csv_iter.next() {
         let is_last = csv_iter.peek().is_none();
 
         match entry {
             Ok(mut r) => {
-                println!(
-                    "Country: '{}' Capital: '{}'",
-                    r.country_short_form_name, r.capital_city
-                );
-                let lat_long = get_lat_long_for_city(
-                    http_client.clone(),
-                    &r.capital_city,
-                    &r.country_code_2letter,
-                )
-                .await?;
+                println!("Country: '{}' Capital: '{}'", r.country, r.capital);
+
+                r.id = Some(index);
+
+                let lat_long =
+                    get_lat_long_for_city(http_client.clone(), &r.capital, &r.country_code).await?;
 
                 r.set_latlong(lat_long);
 
                 let country_audio_resp = fetch_audio_for_text(
                     http_client.clone(),
-                    &r.country_short_form_name,
+                    &r.country,
+                    &format!("{}-country", &r.country_code),
                     OUTPUT_PATH,
                 )
                 .await?;
 
-                let capital_audio_resp =
-                    fetch_audio_for_text(http_client.clone(), &r.capital_city, OUTPUT_PATH).await?;
+                let capital_audio_resp = fetch_audio_for_text(
+                    http_client.clone(),
+                    &r.capital,
+                    &format!("{}-capital", &r.country_code),
+                    OUTPUT_PATH,
+                )
+                .await?;
 
                 r.set_audio_filenames(country_audio_resp, capital_audio_resp);
 
@@ -126,6 +130,8 @@ pub async fn run() -> anyhow::Result<()> {
             }
             Err(e) => eprintln!("Error parsing record: {}", e),
         };
+
+        index += 1;
     }
 
     // 2. run through the list and fetch

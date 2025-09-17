@@ -30,7 +30,12 @@ struct AudioConfig {
     //sample_rate_hertz: u32,
 }
 
-pub(crate) async fn fetch_audio_for_text(client: Client, text: &str, dir: &str) -> Result<String> {
+pub(crate) async fn fetch_audio_for_text(
+    client: Client,
+    text: &str,
+    prefix: &str,
+    dir: &str,
+) -> Result<String> {
     let credentials_path = PathBuf::from("gcp-credentials.json");
     let service_account = CustomServiceAccount::from_file(credentials_path)?;
     let scopes = &["https://www.googleapis.com/auth/cloud-platform"];
@@ -66,14 +71,15 @@ pub(crate) async fn fetch_audio_for_text(client: Client, text: &str, dir: &str) 
     text.hash(&mut hasher);
     let file_hash = format!("{}", hasher.finish());
     let file_name = format!(
-        "{}.{}",
+        "{}-{}.{}",
+        prefix,
         file_hash,
         response.audio_config.audio_encoding.to_lowercase()
     );
-    let file_path = Path::new(dir).join(file_name);
+    let file_path = Path::new(dir).join(&file_name);
     tokio::fs::write(&file_path, &output_file).await?;
 
-    Ok(file_path.to_str().unwrap().to_string())
+    Ok(file_name)
 }
 
 #[cfg(test)]
