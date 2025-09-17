@@ -52,7 +52,7 @@ pub(crate) async fn fetch_audio_for_text(
             },
             "voice": {
                 "languageCode": "en-GB",
-                "name": "en-GB-Chirp-HD-O"
+                "name": "en-GB-Chirp3-HD-Despina"
             },
             "audioConfig": {
                 "audioEncoding": "MP3"
@@ -72,7 +72,7 @@ pub(crate) async fn fetch_audio_for_text(
     let file_hash = format!("{}", hasher.finish());
     let file_name = format!(
         "{}-{}.{}",
-        prefix,
+        prefix.to_lowercase(),
         file_hash,
         response.audio_config.audio_encoding.to_lowercase()
     );
@@ -89,7 +89,8 @@ mod tests {
     #[tokio::test]
     async fn test_audio_fetch() {
         let client = reqwest::Client::new();
-        let result = match fetch_audio_for_text(client, "Hello, world!", "output/audio").await {
+        let result = match fetch_audio_for_text(client, "Czechia", "cz-country", "test/audio").await
+        {
             Ok(_) => Ok(()),
             Err(e) => {
                 eprintln!("Error fetching audio: {}", e);
